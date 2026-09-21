@@ -85,6 +85,17 @@ for (const file of jsFiles) {
   }
 }
 
+/* 3b ── the controls a user cannot work around are actually wired up */
+const mainSrc = await read('js/main.js');
+const MUST_BE_WIRED = ['btn-sheet', 'btn-close-sheet', 'btn-talk', 'ask-form', 'ask-input', 'ob-start', 'sheet-grip'];
+for (const id of MUST_BE_WIRED) {
+  if (!idsInHtml.has(id)) {
+    fail(`index.html is missing the critical control #${id}`);
+  } else if (!mainSrc.includes(`'${id}'`) && !mainSrc.includes(`"${id}"`)) {
+    fail(`#${id} exists in index.html but js/main.js never wires it (dead control)`);
+  }
+}
+
 /* 4 ── puppet CSS contract vs the SVG art */
 const css = await read('css/puppet.css');
 const { PUPPET_SVG, ICON_SVG, PUPPET_PARTS } = await import('../js/puppet-art.js');
@@ -102,6 +113,21 @@ for (const part of requiredParts) {
 for (const svg of [PUPPET_SVG, ICON_SVG]) {
   if (!/^<svg/.test(svg.trim())) fail('puppet-art.js exports something that is not an <svg>');
   if (/<script|on\w+=/i.test(svg)) fail('puppet-art.js must stay script-free (no inline JS in artwork)');
+}
+// The root element must carry BOTH classes: `.puppet-svg` is the art identity,
+// `.puppet` is what css/puppet.css (38 animation rules) and css/app.css
+// (`.puppet-layer .puppet` positioning) hang off. Losing either one is silent
+// and invisible in a headless test run — so it is checked here instead.
+const rootClasses = new Set((/<svg class="([^"]*)"/.exec(PUPPET_SVG)?.[1] || '').split(/\s+/).filter(Boolean));
+for (const rootClass of ['puppet', 'puppet-svg']) {
+  if (!rootClasses.has(rootClass)) {
+    fail(
+      `the puppet SVG root is missing the .${rootClass} class (found: ${[...rootClasses].join(' ') || 'none'}) — that class drives the art's positioning and animations`,
+    );
+  }
+}
+if (!/\.puppet-layer \.puppet\{/.test(await read('css/app.css'))) {
+  fail('css/app.css no longer styles .puppet-layer .puppet — the puppet would have no placement rules');
 }
 const puppetIds = [...PUPPET_SVG.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
 if (new Set(puppetIds).size !== puppetIds.length) fail('duplicate gradient ids inside PUPPET_SVG');

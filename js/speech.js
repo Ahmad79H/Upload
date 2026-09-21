@@ -220,7 +220,7 @@ export class Speech {
         } else {
           // Older engines (and headless/embedded webviews) return undefined from
           // play(): make sure we never hang waiting for an event that never comes.
-          setTimeout(() => {
+          this._later(() => {
             if (settled) return;
             if (audio.paused === false) this._later(() => finish(true), 45000);
             else finish(false);

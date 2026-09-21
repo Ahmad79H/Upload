@@ -35,8 +35,8 @@
   border-top:3px solid rgba(255,255,255,.28);border-radius:42% 58% 0 0/16% 22% 0 0}
 
 /* ── puppet layer ── */
-.puppet-layer{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
-.puppet-layer .puppet{position:absolute;transform-origin:50% 92%;will-change:transform;
+.puppet-layer{position:absolute;inset:0;pointer-events:none;will-change:transform}
+.puppet-layer .puppet{position:absolute;left:0;top:0;display:block;transform-origin:50% 92%;will-change:transform;
   filter:drop-shadow(0 10px 14px rgba(0,0,0,.32));pointer-events:auto;touch-action:none}
 .drop-shadow{position:absolute;width:120px;height:26px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.35),transparent 70%);
   transform:translate(-50%,-50%);pointer-events:none;transition:opacity .3s}

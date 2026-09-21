@@ -46,12 +46,56 @@ async function makePuppet(opts = {}) {
 test('mounting injects the artwork and puts Pip on the floor', async () => {
   const { puppet, doc } = await makePuppet();
   assert.ok(doc.querySelector('#puppet-layer .puppet-svg'), 'artwork is injected without a network fetch');
+  // Both root classes matter: .puppet-svg is the art, .puppet is what css/puppet.css
+  // animates and css/app.css positions. Without .puppet he mounts and stays invisible.
+  assert.ok(puppet.el.classList.contains('puppet'), 'the root element carries the .puppet hook class');
+  assert.ok(puppet.el.classList.contains('puppet-svg'), 'and the .puppet-svg identity class');
+  // Explicit pixel box — never "width:100%" of a zero-width layer.
+  assert.equal(puppet.el.style.width, `${puppet.size}px`);
+  assert.equal(puppet.el.style.height, `${Math.round((puppet.size * 280) / 200)}px`);
+  // And he stands ON the grass (.ground is 26vh tall → the line is at 74% of the viewport).
+  assert.equal(puppet.groundLine, Math.round(puppet.bounds().h * 0.74));
+  assert.equal(puppet.floorY, puppet.groundLine - puppet.artHeight);
   assert.ok(puppet.size >= 96 && puppet.size <= 200, `size ${puppet.size} should be thumb-sized`);
   assert.equal(puppet.anim, 'idle');
   assert.equal(puppet.el.dataset.anim, 'idle');
   assert.equal(puppet.pos.y, puppet.floorY);
   assert.ok(puppet.pos.x > 0);
   puppet.destroy();
+});
+
+test('the shadow is drawn on the grass and fades while he is airborne', async () => {
+  const { puppet, doc } = await makePuppet();
+  const shadow = doc.getElementById('drop-shadow');
+  assert.equal(shadow.style.top, `${puppet.groundLine}px`, 'the contact shadow sits on the grass line');
+  const grounded = Number(shadow.style.opacity);
+  puppet.pos.y = puppet.floorY - 220;
+  puppet.render();
+  assert.ok(Number(shadow.style.opacity) < grounded, 'it fades as he flies');
+  assert.equal(shadow.style.left, `${puppet.pos.x + puppet.size / 2}px`, 'and it follows him sideways');
+  puppet.destroy();
+});
+
+test('a headless DOM reports "no layout" instead of pretending to measure pixels', async () => {
+  const { puppet } = await makePuppet();
+  const seen = puppet.measure();
+  assert.equal(seen.laidOut, false, 'jsdom has no layout engine, and says so');
+  assert.equal(seen.ok, true, 'so the puppet is not falsely reported as invisible');
+  assert.equal(puppet.harden(), true, 'the fallback styles can always be applied');
+  assert.equal(puppet.el.style.position, 'absolute');
+  puppet.destroy();
+});
+
+test('destroy() really stops everything (no timer keeps the page alive)', async () => {
+  const { puppet } = await makePuppet();
+  assert.ok(puppet.timers.size > 0, 'idle life is scheduled while he is alive');
+  puppet.perform('cheer');
+  puppet.destroy();
+  assert.equal(puppet.destroyed, true);
+  assert.equal(puppet.timers.size, 0, 'every tracked timer is cleared');
+  const before = puppet.stats.blinks;
+  await new Promise((r) => setTimeout(r, 40));
+  assert.equal(puppet.stats.blinks, before, 'and nothing fires after destroy');
 });
 
 test('animation and expression setters drive the data attributes', async () => {
@@ -236,18 +280,31 @@ test('actions are announced on the bus', async () => {
   puppet.destroy();
 });
 
-test('his position is remembered across reloads', async () => {
+test('his position is remembered across reloads (and unsafe spots are clamped)', async () => {
   const { puppet, store } = await makePuppet();
-  puppet.pos = { x: 123, y: 456 };
+  const landing = { x: 123, y: Math.max(0, puppet.floorY - 120) }; // mid-air, mid-screen: a legal spot
+  puppet.pos = { ...landing };
   puppet.save();
-  assert.deepEqual(store.get('puppet').pos, { x: 123, y: 456 });
+  assert.deepEqual(store.get('puppet').pos, landing);
 
   const { win, doc } = await makeStage();
   const restored = new Puppet({ win, doc, container: doc.getElementById('puppet-layer'), store });
   restored.mount();
-  assert.equal(restored.pos.x, 123);
-  assert.equal(restored.pos.y, 456);
+  livePuppets.add(restored);
+  assert.equal(restored.pos.x, landing.x);
+  assert.equal(restored.pos.y, landing.y);
+
+  // a stored position from an older layout (below the floor, or off the side) is
+  // pulled back into view instead of leaving him stranded off-screen
+  store.set('puppet', { pos: { x: 99999, y: 99999 } });
+  const { win: win2, doc: doc2 } = await makeStage();
+  const clamped = new Puppet({ win: win2, doc: doc2, container: doc2.getElementById('puppet-layer'), store });
+  clamped.mount();
+  livePuppets.add(clamped);
+  assert.equal(clamped.pos.y, clamped.floorY, 'he is put back on the ground');
+  assert.ok(clamped.pos.x <= clamped.bounds().w - clamped.size, 'and back inside the screen');
   restored.destroy();
+  clamped.destroy();
 });
 
 test('rotation/resize keeps him on screen and re-sizes him', async () => {

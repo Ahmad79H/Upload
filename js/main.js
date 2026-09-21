@@ -109,6 +109,27 @@ function applySettingsToModules() {
 }
 
 /* ─────────── bubbles & toasts ─────────── */
+/* UI timers are tracked so shutdown() (tests, embedding, page-hide) can leave
+   nothing behind: a stray 9-second bubble timer outliving the page is how a
+   headless test suite ends up hanging for no visible reason. */
+const uiTimers = new Set();
+function later(fn, ms) {
+  const handle = setTimeout(() => {
+    uiTimers.delete(handle);
+    try {
+      fn();
+    } catch (err) {
+      console.warn('[pip] deferred task failed', err?.message || err);
+    }
+  }, ms);
+  uiTimers.add(handle);
+  return handle;
+}
+function clearUiTimers() {
+  for (const handle of uiTimers) clearTimeout(handle);
+  uiTimers.clear();
+}
+
 const bubbleLayer = document.getElementById('bubble-layer');
 let liveBubble = null;
 
@@ -142,7 +163,7 @@ function showBubble(text, { who = 'Pip', thinking = false, sticky = false, tools
   bubbleLayer.appendChild(el);
   positionBubble(el);
   const life = sticky ? 9000 : Math.min(14000, 2600 + text.length * 55);
-  el._timeout = setTimeout(() => el.remove(), life);
+  el._timeout = later(() => el.remove(), life);
   if (id === 'main') liveBubble = el;
   return el;
 }
@@ -172,7 +193,7 @@ function toast(text, kind = '') {
   el.className = `toast ${kind ? `toast--${kind}` : ''}`;
   el.textContent = text;
   layer.appendChild(el);
-  setTimeout(() => el.remove(), 3400);
+  later(() => el.remove(), 3400);
 }
 
 /* ─────────── chat ─────────── */
@@ -269,7 +290,7 @@ async function sendMessage(rawText) {
     addChatMessage('pip', reply, { tools: toolList, speakable: true, meta: result.gateway ? `via ${result.gateway}` : result.offline ? 'offline brain' : '' });
     pushHistory('pip', reply, toolList);
     if (settings.speak) await speech.speak(reply);
-    if (puppet.anim !== 'sleep') setTimeout(() => puppet.setAnim('idle'), 400);
+    if (puppet.anim !== 'sleep') later(() => puppet.setAnim('idle'), 400);
     if (result.mood === 'wow' || /plus ultra/i.test(reply)) puppet.perform('cheer');
     return result;
   } catch (err) {
@@ -284,7 +305,7 @@ async function sendMessage(rawText) {
   } finally {
     busy = false;
     document.body.classList.remove('is-busy');
-    if (!speech.speaking && puppet.anim !== 'sleep') setTimeout(() => puppet.setAnim('idle'), 1200);
+    if (!speech.speaking && puppet.anim !== 'sleep') later(() => puppet.setAnim('idle'), 1200);
   }
 }
 
@@ -324,7 +345,7 @@ async function startListening() {
       const hint = /denied|not allowed/i.test(res.error || '') ? 'I need mic permission to listen — check the browser lock icon.' : "I did not catch that. Hold the mic and talk close to your phone!";
       updateLiveBubble(hint);
       if (settings.speak) speech.speak(hint);
-      setTimeout(() => puppet.setAnim('idle'), 1500);
+      later(() => puppet.setAnim('idle'), 1500);
     }
   } catch (err) {
     micActive = false;
@@ -404,6 +425,14 @@ function closeSheet() {
 }
 document.getElementById('btn-sheet')?.addEventListener('click', () => (sheet.hidden ? openSheet('chat') : closeSheet()));
 document.getElementById('sheet-grip')?.addEventListener('click', closeSheet);
+// Three more ways out, because the dock hides behind the sheet while it is open.
+document.getElementById('btn-close-sheet')?.addEventListener('click', closeSheet);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !sheet.hidden) closeSheet();
+});
+document.getElementById('stage')?.addEventListener('click', () => {
+  if (!sheet.hidden) closeSheet(); // tapping the sky/puppet area dismisses the sheet
+});
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => selectTab(t.dataset.tab)));
 function selectTab(name) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('is-active', t.dataset.tab === name));
@@ -569,7 +598,7 @@ function wireSettings() {
     voiceSel.value = settings.voiceName || '';
   };
   fillVoices();
-  setTimeout(fillVoices, 800);
+  later(fillVoices, 800);
   voiceSel.addEventListener('change', () => {
     settings.voiceName = voiceSel.value || null;
     saveSettings();
@@ -640,7 +669,7 @@ function wireSettings() {
       try {
         store.import(JSON.parse(await file.text()));
         toast('notebook imported — reloading');
-        setTimeout(() => safeReload(), 800);
+        later(() => safeReload(), 800);
       } catch (err) {
         toast(`import failed: ${err.message}`, 'bad');
       }
@@ -651,7 +680,7 @@ function wireSettings() {
     if (!confirm('Factory reset: erase Pip\'s memory, habits and settings?')) return;
     store.clearAll();
     toast('all clean — reloading');
-    setTimeout(() => safeReload(), 700);
+    later(() => safeReload(), 700);
   });
   document.getElementById('btn-test')?.addEventListener('click', async () => {
     const view = document.getElementById('selftest-view');
@@ -765,7 +794,7 @@ function wirePerception() {
       }
     } else {
       puppet.setExpression('sad');
-      setTimeout(() => puppet.setExpression('happy'), 2600);
+      later(() => puppet.setExpression('happy'), 2600);
     }
     habits.observe('presence', { present, motionLevel });
   });
@@ -920,7 +949,25 @@ function wirePwa() {
     });
   });
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch((err) => console.info('[pip] offline cache unavailable', err?.message));
+    // A new worker (new cache version) takes over immediately, and if this page
+    // was being served by an older one we reload once so the fix is actually on
+    // screen. Without this, cache-first workers happily serve a broken build
+    // forever — which is exactly the trap this app fell into once.
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloaded) return;
+      reloaded = true;
+      console.info('[pip] fresh build installed — one reload for the new Pip');
+      safeReload();
+    });
+    navigator.serviceWorker
+      .register('./sw.js')
+      .then((reg) => {
+        reg.update?.();
+        reg.waiting?.postMessage('pip:skip-waiting');
+      })
+      .catch((err) => console.info('[pip] offline cache unavailable', err?.message));
   }
 }
 
@@ -940,6 +987,12 @@ function loadPuter() {
 
 /* ─────────── boot sequence ─────────── */
 async function boot() {
+  // Idempotent: retrying after a failure (or embedding Pip twice) must never
+  // stack a second theme interval / scheduler / perception loop.
+  clearUiTimers();
+  clearTimeout(nudgeTimer);
+  clearInterval(themeTimer);
+  scheduler.stop();
   applySettingsToModules();
   puppet.mount();
   wireSettings();
@@ -969,7 +1022,7 @@ async function boot() {
     const hello = settings.userName
       ? `${part === 'night' ? 'Still up' : part === 'morning' ? 'Good morning' : 'Hey'}, ${settings.userName}! I am here.`
       : part === 'morning' ? 'Good morning! I am here.' : 'Hey! I am here.';
-    setTimeout(() => {
+    later(() => {
       showBubble(hello);
       puppet.perform('wave');
       if (!settings.camera && !settings.motion) console.info('[pip] tip: enable the presence camera to have him watch over you');
@@ -987,6 +1040,7 @@ function safeReload() {
 
 /** Stop every timer, listener and animation. Used by tests and when embedding Pip. */
 export function shutdown() {
+  clearUiTimers();
   clearTimeout(nudgeTimer);
   clearInterval(themeTimer);
   scheduler.stop();
@@ -998,13 +1052,104 @@ export function shutdown() {
   bus.emit('pip:shutdown', { at: Date.now() });
 }
 
-/* Test hooks: system tests import this module inside jsdom and drive it. */
-export const __pip = { store, pool, toolkit, memory, habits, perception, speech, brain, puppet, scheduler, settings, sendMessage, showBubble, runSelfTest, boot, shutdown, bus, GATEWAY_CATALOG };
-
-if (typeof window !== 'undefined' && !window.__PIP_TEST__) {
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => boot());
-  else boot();
+const recentProblems = [];
+function noteProblem(kind, detail) {
+  recentProblems.push({ kind, detail: String(detail ?? '').slice(0, 300), at: new Date().toISOString() });
+  if (recentProblems.length > 12) recentProblems.shift();
 }
 
-window.addEventListener('error', (e) => console.warn('[pip] unhandled', e.message));
-window.addEventListener('unhandledrejection', (e) => console.warn('[pip] unhandled promise', e.reason?.message || e.reason));
+/* ─────────── "Pip isn't on my screen" diagnostics ───────────
+   ?diag=1 (or Settings → Diagnose) prints the facts needed to debug a blank
+   puppet on a real phone: boot state, viewport, the puppet's measured rect, the
+   active service-worker cache and the last few runtime problems. */
+const diagWanted = typeof location !== 'undefined' && /[?&]diag=1/.test(location.search);
+function diagnostics() {
+  const p = puppet.measure();
+  const cs = typeof win.getComputedStyle === 'function' && puppet.el ? win.getComputedStyle(puppet.el) : null;
+  return {
+    at: new Date().toISOString(),
+    boot: document.body.dataset.boot,
+    viewport: { w: win.innerWidth, h: win.innerHeight, dpr: win.devicePixelRatio || 1 },
+    art: { classes: puppet.el?.getAttribute('class'), width: cs?.width, height: cs?.height, position: cs?.position },
+    puppet: { size: puppet.size, pos: { ...puppet.pos }, floorY: puppet.floorY, groundLine: puppet.groundLine, ...p },
+    layerTransform: puppet.rootEl?.style.transform,
+    stylesheets: [...document.styleSheets].length,
+    serviceWorker: win.navigator?.serviceWorker?.controller?.scriptURL || 'none',
+    gateways: pool.status().map((g) => ({ id: g.id, ok: g.ok, fail: g.fail, usable: g.usable })),
+    problems: recentProblems,
+  };
+}
+function showDiagnostics() {
+  const data = diagnostics();
+  const box = document.getElementById('diag-view');
+  if (!box) return data;
+  box.textContent = `${JSON.stringify(data, null, 2)}\n\n(tap to dismiss)`;
+  box.hidden = false;
+  if (typeof box.scrollIntoView === 'function') box.scrollIntoView({ block: 'nearest' });
+  console.info('[pip] diagnostics', data);
+  return data;
+}
+document.getElementById('diag-view')?.addEventListener('click', (e) => {
+  e.currentTarget.hidden = true;
+});
+win.__pipDiagnostics = showDiagnostics;
+
+/* A puppet with no pixels is a bug, never a mystery. */
+bus.on('puppet:hidden', (info) => {
+  console.error('[pip] the puppet has no size on this screen', info);
+  noteProblem('puppet-hidden', JSON.stringify(info));
+  toast('Pip could not draw himself — tap here for diagnostics', 'warn');
+  const layer = document.getElementById('toast-layer');
+  layer?.lastElementChild?.addEventListener('click', () => showDiagnostics());
+});
+
+window.addEventListener('error', (e) => {
+  noteProblem('error', e.message);
+  console.warn('[pip] unhandled', e.message);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  noteProblem('rejection', e.reason?.message || e.reason);
+  console.warn('[pip] unhandled promise', e.reason?.message || e.reason);
+});
+
+/* Test hooks: system tests import this module inside jsdom and drive it. */
+export const __pip = { store, pool, toolkit, memory, habits, perception, speech, brain, puppet, scheduler, settings, sendMessage, showBubble, runSelfTest, boot, bootSafe: bootSafely, shutdown, bus, GATEWAY_CATALOG };
+
+function reportBootFailure(err) {
+  console.error('[pip] boot failed', err);
+  noteProblem('boot', err?.stack || err?.message || err);
+  document.body.dataset.boot = 'error';
+  try {
+    toast('Pip tripped while starting up — tap the sky to try again', 'warn');
+  } catch {
+    /* the toast layer itself may be missing; the console error above still tells the story */
+  }
+  if (typeof window !== 'undefined' && !window.__PIP_TEST_RETRY__) {
+    window.__PIP_TEST_RETRY__ = true;
+    document.getElementById('stage')?.addEventListener('click', function retry() {
+      if (document.body.dataset.boot !== 'error') return;
+      document.body.dataset.boot = 'cold';
+      bootSafely();
+    });
+  }
+}
+function bootSafely() {
+  try {
+    const started = boot();
+    if (started?.catch) started.catch(reportBootFailure);
+    return started;
+  } catch (err) {
+    reportBootFailure(err);
+    return null;
+  }
+}
+
+if (typeof window !== 'undefined' && !window.__PIP_TEST__) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => bootSafely());
+  else bootSafely();
+}
+
+// Settings → Diagnose, or ?diag=1: show what Pip can see about himself.
+document.getElementById('btn-diag')?.addEventListener('click', () => showDiagnostics());
+if (diagWanted) later(() => showDiagnostics(), 1200);
+

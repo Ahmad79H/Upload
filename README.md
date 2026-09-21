@@ -168,18 +168,21 @@ index.html ── css/{reset,app,puppet,panel}.css ── js/main.js  (the only 
 
 ## Testing: unit + system + **10 agents at once**
 
-210 tests currently pass. Nothing in the repo is untested hand-waving:
+227 tests currently pass. Nothing in the repo is untested hand-waving:
 
 ```
 tests/helpers.mjs          jsdom harness, fake clock, fake fetch, fake phone (battery/geo/camera/motion)
 tests/unit/               14 suites — pure logic, no network
   util · bus-store · gateways · nlu · tools · personality · memory ·
   habits · perception · speech · brain · scheduler · puppet · puppet-art
-tests/system/              3 suites — the real app inside jsdom
+tests/system/              4 suites — the real app inside jsdom
   boot.test.js        cold boot, onboarding, first conversation, self-test, reload, sheets
   journeys.test.js    hold-to-talk, drag & fling, timers, habits, presence, dials, private mode
   resilience.test.js  every gateway down, garbage responses, airplane mode, hostile storage,
                       denied camera/mic, 30 rapid messages, unicode, shutdown/reboot
+  visibility.test.js  loads the REAL stylesheets and asserts the selectors match the live DOM:
+                      the puppet has a pixel box and his feet on the grass, the ✕/Escape/tap-to-close
+                      all work, diagnostics tell the truth, and a broken boot is reported not hidden
 tests/run-agents.mjs  ⭐ spawns TEN independent worker processes, shards the suites by weight,
                       prints a fleet table, writes artifacts/agents-report.json, fails the build
                       if any agent fails
@@ -207,6 +210,23 @@ the code uses exists in the HTML, every SVG part `css/puppet.css` animates exist
 keyless gateways.
 
 ---
+
+## If Pip is not on your screen
+
+Three things can hide him, and Pip now defends against all three:
+
+| Symptom | Cause | What the app does about it |
+|---|---|---|
+| Blank stage, no puppet | a **stale service-worker cache** served an old stylesheet/build | the worker is now network-first for code (`pip-shell-v2`), takes over immediately (`skipWaiting` + `clients.claim`) and the page **reloads itself once** when a new build installs |
+| He loads but never moves | the SVG root lost its `.puppet` class, so all 38 animation rules and the placement rule stopped matching | `.puppet` is asserted in `npm run lint`, in `tests/unit/puppet-art.test.js` and against the *live* DOM in `tests/system/visibility.test.js` |
+| He renders with no size at all | a browser quirk / zero-size layer | the app measures him after mounting (`puppet.measure()`), applies inline fallback geometry (`harden()`) and, if he *still* has no pixels, says so and offers diagnostics instead of going quiet |
+
+Need the facts on your own phone? Open the app with **`?diag=1`** or tap **Settings → Diagnose**. You get
+boot state, viewport, the puppet's measured rect and computed size, the active service-worker cache,
+gateway health and the last runtime problems — tap the panel to dismiss it.
+
+**The menu always closes** three ways: the **✕** in its top-right corner, the **Escape** key, or a tap
+on the sky above it (the dock hides *behind* the sheet, so it can never trap you).
 
 ## Commands
 

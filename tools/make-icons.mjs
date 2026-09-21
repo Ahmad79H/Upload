@@ -214,7 +214,10 @@ async function main() {
   await mkdir(resolve(ROOT, 'assets/puppet'), { recursive: true });
   await mkdir(resolve(ROOT, 'assets/icons'), { recursive: true });
 
-  const puppet = PUPPET_SVG.replace('<svg class="puppet-svg"', '<svg class="puppet-svg" width="200" height="280"');
+  // Give the exported art explicit pixel dimensions (the app sets them at runtime).
+  // Match the root tag generically so the class list can change freely.
+  const puppet = PUPPET_SVG.replace(/<svg\b([^>]*)>/, (m, attrs) => (/(\swidth=)/.test(attrs) ? m : `<svg${attrs} width="200" height="280">`));
+  if (!/width="200"/.test(puppet)) throw new Error('could not add dimensions to the exported puppet SVG');
   await writeFile(resolve(ROOT, 'assets/puppet/pip.svg'), `${puppet.trim()}\n`);
   await writeFile(resolve(ROOT, 'assets/icons/icon.svg'), `${ICON_SVG.trim()}\n`);
 

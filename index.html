@@ -79,7 +79,8 @@
 
 <!-- ───────────────────────── SHEETS ───────────────────────── -->
 <section id="sheet" class="sheet" hidden aria-modal="true" role="dialog" aria-label="Puppet menu">
-  <div class="sheet__grip" id="sheet-grip"></div>
+  <div class="sheet__grip" id="sheet-grip" title="Tap or drag down to close"></div>
+  <button id="btn-close-sheet" class="sheet__close" type="button" aria-label="Close menu" title="Close">✕</button>
   <div class="sheet__tabs" role="tablist">
     <button class="tab is-active" data-tab="chat" role="tab">Chat</button>
     <button class="tab" data-tab="brain" role="tab">Brains</button>
@@ -161,8 +162,10 @@
       <div class="row">
         <button id="btn-install" class="btn" type="button" hidden>Install now</button>
         <button id="btn-test" class="btn btn--ghost" type="button">Run self-test</button>
+        <button id="btn-diag" class="btn btn--ghost" type="button">Diagnose</button>
       </div>
       <pre id="selftest-view" class="code"></pre>
+      <pre id="diag-view" class="code diag-view" hidden></pre>
     </div>
   </div>
 </section>

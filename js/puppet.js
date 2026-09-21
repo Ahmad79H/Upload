@@ -21,6 +21,11 @@ export const EXPRESSIONS = ['happy', 'curious', 'sad', 'wow', 'determined', 'blu
 
 const PHYS = { gravity: 2600, damping: 0.72, friction: 0.86, wallBounce: 0.6, minSpeed: 14 };
 
+/** The art's viewBox (js/puppet-art.js). His feet sit at the very bottom of it. */
+const ART = { w: 200, h: 280 };
+/** `.ground` is 26vh tall, so the grass line is at 74% of the viewport height. */
+const GROUND_FRACTION = 0.74;
+
 export class Puppet {
   constructor({ win = globalThis, doc = globalThis.document, container = null, bus = null, store = null, rng = Math.random, clock = () => Date.now(), size = null } = {}) {
     this.win = win;
@@ -51,6 +56,7 @@ export class Puppet {
     this._tapCount = 0;
     this._lastTapAt = 0;
     this._pressTimer = null;
+    this.destroyed = false;
   }
 
   computeSize() {
@@ -70,15 +76,25 @@ export class Puppet {
     this.rootEl = this.container;
     this.rootEl.style.setProperty('--puppet-size', `${this.size}px`);
     const bounds = this.bounds();
-    this.floorY = bounds.h - this.size * 1.18;
+    this.artHeight = Math.round((this.size * ART.h) / ART.w);
+    this.groundLine = Math.round(bounds.h * GROUND_FRACTION);
+    // Resting position: feet exactly on the grass line, never above the top edge.
+    this.floorY = Math.max(0, this.groundLine - this.artHeight);
     this.pos = restored?.pos && Number.isFinite(restored.pos.x)
-      ? { x: clamp(restored.pos.x, 0, bounds.w - this.size), y: clamp(restored.pos.y, 0, this.floorY) }
+      ? { x: clamp(restored.pos.x, 0, Math.max(0, bounds.w - this.size)), y: clamp(restored.pos.y, 0, this.floorY) }
       : { x: Math.round(bounds.w / 2 - this.size / 2), y: this.floorY };
     this.vel = { x: 0, y: 0 };
     this.render();
     this.attachInput();
     this.startIdle();
-    this.bus?.emit('puppet:mounted', { size: this.size, pos: { ...this.pos } });
+    const seen = this.measure();
+    if (!seen.ok) {
+      // A stale service-worker cache or a browser quirk left him with no pixels.
+      // Harden the inline styles so he is visible anyway, and tell the app.
+      this.harden();
+      this.bus?.emit('puppet:hidden', seen);
+    }
+    this.bus?.emit('puppet:mounted', { size: this.size, pos: { ...this.pos }, visible: seen.ok });
     return this;
   }
 
@@ -86,6 +102,35 @@ export class Puppet {
     const w = this.win?.innerWidth || 390;
     const h = this.win?.innerHeight || 844;
     return { w, h };
+  }
+
+  /**
+   * Did the art actually get pixels? Headless test DOMs (jsdom) never lay out,
+   * so they are excused — everywhere else a zero-size puppet means a real bug.
+   */
+  measure() {
+    const el = this.el;
+    if (!el?.getBoundingClientRect) return { ok: false, reason: 'no element', laidOut: false };
+    const laidOut = (this.doc?.body?.clientWidth || 0) > 0;
+    let rect = { x: 0, y: 0, w: 0, h: 0 };
+    try {
+      const r = el.getBoundingClientRect();
+      rect = { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
+    } catch {
+      return { ok: false, reason: 'rect unavailable', laidOut };
+    }
+    return { ok: !laidOut || (rect.w > 0 && rect.h > 0), laidOut, rect, size: this.size };
+  }
+
+  /** Last-resort inline styles so Pip is on screen even if the stylesheet did not load. */
+  harden() {
+    if (!this.el) return false;
+    const art = { position: 'absolute', left: '0', top: '0', display: 'block' };
+    for (const [k, v] of Object.entries(art)) this.el.style[k] = v;
+    this.el.style.width = `${this.size}px`;
+    this.el.style.height = `${Math.round((this.size * ART.h) / ART.w)}px`;
+    this.rootEl.style.transform = `translate3d(${Math.round(this.pos.x)}px, ${Math.round(this.pos.y)}px, 0)`;
+    return true;
   }
 
   render() {
@@ -98,14 +143,15 @@ export class Puppet {
     this.el.dataset.drag = String(this.dragging);
     this.el.dataset.blink = String(this.blinking);
     this.el.classList.toggle('is-landed', this.landed);
+    // Explicit px box: never rely on intrinsic SVG sizing for the puppet to be seen.
     this.el.style.width = `${this.size}px`;
-    this.el.style.height = 'auto';
+    this.el.style.height = `${this.artHeight || Math.round((this.size * ART.h) / ART.w)}px`;
     this.el.style.transform = this.dragging ? 'rotate(-3deg)' : '';
     const shadow = this.doc?.getElementById?.('drop-shadow');
     if (shadow) {
       const air = clamp((this.floorY - this.pos.y) / 260, 0, 1);
       shadow.style.left = `${this.pos.x + this.size / 2}px`;
-      shadow.style.top = `${this.bounds().h - 22}px`;
+      shadow.style.top = `${this.groundLine ?? this.bounds().h * GROUND_FRACTION}px`;
       shadow.style.opacity = String(clamp(0.55 - air * 0.4, 0.08, 0.6));
       const scale = clamp(1 - air * 0.35, 0.5, 1);
       shadow.style.transform = `translate(-50%,-50%) scale(${scale})`;
@@ -126,7 +172,7 @@ export class Puppet {
     this.anim = name;
     clearTimeout(this._animTimer);
     if (durationMs) {
-      this._animTimer = setTimeout(() => this.setAnim('idle'), durationMs);
+      this._animTimer = this._after(() => this.setAnim('idle'), durationMs);
       this.timers.add(this._animTimer);
     }
     this.render();
@@ -225,7 +271,7 @@ export class Puppet {
   _sparkle() {
     if (!this.el) return;
     this.el.classList.add('is-sparkling');
-    setTimeout(() => this.el?.classList.remove('is-sparkling'), 1800);
+    this._after(() => this.el?.classList.remove('is-sparkling'), 1800);
   }
 
   _wave() {
@@ -235,14 +281,14 @@ export class Puppet {
   _dance() {
     const beats = 6;
     for (let i = 0; i < beats; i++) {
-      const t = setTimeout(() => {
+      const t = this._after(() => {
         this.look = i % 2 ? 'left' : 'right';
         this.setExpression(i % 3 === 0 ? 'wow' : 'happy');
         this.render();
       }, i * 380);
       this.timers.add(t);
     }
-    const end = setTimeout(() => this.setLook('center'), beats * 380 + 100);
+    const end = this._after(() => this.setLook('center'), beats * 380 + 100);
     this.timers.add(end);
   }
 
@@ -271,8 +317,20 @@ export class Puppet {
     return this;
   }
 
+  /** setTimeout that (a) is tracked for destroy() and (b) never fires after destroy(). */
+  _after(fn, ms) {
+    const handle = setTimeout(() => {
+      this.timers.delete(handle);
+      if (this.destroyed) return;
+      fn();
+    }, ms);
+    this.timers.add(handle);
+    return handle;
+  }
+
   _every(fn, ms) {
     const id = setInterval(() => {
+      if (this.destroyed) return;
       if (this.anim === 'sleep' && fn.name !== 'blink') return;
       fn();
     }, ms);
@@ -282,8 +340,11 @@ export class Puppet {
 
   _blinkLoop(ms) {
     const schedule = () => {
+      if (this.destroyed) return;
       const delay = ms * (0.55 + this.rng() * 0.9);
       const t = setTimeout(() => {
+        this.timers.delete(t);
+        if (this.destroyed) return;
         if (this.anim !== 'sleep') this.blinkOnce();
         schedule();
       }, delay);
@@ -296,7 +357,7 @@ export class Puppet {
     this._every(() => {
       if (this.dragging) return;
       this.setLook(pick(['left', 'right', 'up', 'center'], this.rng));
-      const t = setTimeout(() => !this.dragging && this.setLook('center'), 1600 + this.rng() * 1200);
+      const t = this._after(() => !this.dragging && this.setLook('center'), 1600 + this.rng() * 1200);
       this.timers.add(t);
     }, ms);
   }
@@ -366,7 +427,7 @@ export class Puppet {
     this.setExpression('wow');
     this.render();
     this.bus?.emit('puppet:drag-start', { at: p });
-    this._pressTimer = setTimeout(() => {
+    this._pressTimer = this._after(() => {
       if (this._pointer.moved < 8) {
         this.bus?.emit('puppet:long-press', {});
         this.perform('think');
@@ -536,7 +597,8 @@ export class Puppet {
   settle() {
     const bounds = this.bounds();
     this.pos.x = clamp(this.pos.x, 0, bounds.w - this.size);
-    this.pos.y = clamp(this.pos.y, 40, this.floorY);
+    // keep him below the HUD, but never below the floor (tiny windows included)
+    this.pos.y = clamp(this.pos.y, Math.min(40, this.floorY), this.floorY);
     this.setExpression(this.expr === 'wow' ? 'happy' : this.expr);
     this.render();
     this.save();
@@ -546,7 +608,9 @@ export class Puppet {
   onResize() {
     this.size = this.computeSize();
     const bounds = this.bounds();
-    this.floorY = bounds.h - this.size * 1.18;
+    this.artHeight = Math.round((this.size * ART.h) / ART.w);
+    this.groundLine = Math.round(bounds.h * GROUND_FRACTION);
+    this.floorY = Math.max(0, this.groundLine - this.artHeight);
     this.pos.x = clamp(this.pos.x, 0, Math.max(0, bounds.w - this.size));
     this.pos.y = clamp(this.pos.y, 0, this.floorY);
     this.rootEl?.style.setProperty('--puppet-size', `${this.size}px`);
@@ -563,6 +627,9 @@ export class Puppet {
   }
 
   destroy() {
+    this.destroyed = true;
+    clearTimeout(this._animTimer);
+    clearTimeout(this._pressTimer);
     this.stopIdle();
     this.cancelPhysics();
     for (const off of this.listeners) off();

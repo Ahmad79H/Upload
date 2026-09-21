@@ -76,3 +76,58 @@ test('the art has no copyrighted character likeness markers (fan-made puppet)', 
   assert.ok(!/all.?might|bakugo|uraraka|midoriya|shigaraki/i.test(text), 'only original shapes and colours');
   assert.ok(text.includes('Pip the puppet hero'));
 });
+
+
+test('the SVG root carries the hooks the stylesheet needs', async () => {
+  const classes = (/<svg class="([^"]*)"/.exec(PUPPET_SVG)?.[1] || '').split(/\s+/).filter(Boolean);
+  assert.ok(classes.includes('puppet-svg'), 'the art identity class is on the root');
+  assert.ok(
+    classes.includes('puppet'),
+    'the .puppet class is the hook for css/puppet.css (38 animation rules) and css/app.css positioning',
+  );
+  assert.equal(classes[0], 'puppet', 'and it comes first, so `.puppet` rules win ties');
+});
+
+
+test('the artwork is actually drawable: real shapes, inside the viewBox', async () => {
+  const boxOf = (tag, attrs) => {
+    const num = (k) => {
+      const r = new RegExp(`${k}="(-?[\\d.]+)"`).exec(attrs);
+      return r ? parseFloat(r[1]) : null;
+    };
+    if (tag === 'ellipse') {
+      const v = [num('cx'), num('cy'), num('rx'), num('ry')];
+      return v.every((x) => x != null) ? [v[0] - v[2], v[1] - v[3], v[0] + v[2], v[1] + v[3]] : null;
+    }
+    if (tag === 'circle') {
+      const v = [num('cx'), num('cy'), num('r')];
+      return v.every((x) => x != null) ? [v[0] - v[2], v[1] - v[2], v[0] + v[2], v[1] + v[2]] : null;
+    }
+    if (tag === 'rect') {
+      const v = [num('x') ?? 0, num('y') ?? 0, num('width'), num('height')];
+      return v.every((x) => x != null) ? [v[0], v[1], v[0] + v[2], v[1] + v[3]] : null;
+    }
+    return null; // paths & polygons are hand-checked by the part list
+  };
+
+  const shapes = [...PUPPET_SVG.matchAll(/<(ellipse|circle|rect|path)\b([^>]*)>/g)].map((m) => ({
+    tag: m[1],
+    box: boxOf(m[1], m[2]),
+  }));
+  const boxes = shapes.map((s) => s.box).filter(Boolean);
+
+  assert.ok(shapes.length >= 30, `the puppet is built from real geometry (found ${shapes.length} shapes)`);
+  assert.ok(boxes.length >= 20, 'most parts are simple primitives');
+  const bad = boxes.filter(([x1, y1, x2, y2]) => x1 < -20 || y1 < -20 || x2 > 220 || y2 > 300);
+  assert.deepEqual(bad, [], 'nothing is drawn far outside the 200×280 viewBox (that is how art goes invisible)');
+
+  const union = boxes.reduce(
+    (a, b) => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])],
+    [Infinity, Infinity, -Infinity, -Infinity],
+  );
+  const [x1, y1, x2, y2] = union;
+  assert.ok(x2 - x1 > 150, `the body spans the frame horizontally (got ${Math.round(x2 - x1)})`);
+  assert.ok(y2 - y1 > 200, `the body spans the frame vertically (got ${Math.round(y2 - y1)})`);
+  assert.ok(y1 < 40, 'his head starts near the top of the frame');
+  assert.ok(y2 > 250, 'and his feet reach the bottom, where the shadow is');
+});

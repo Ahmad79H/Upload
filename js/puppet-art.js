@@ -3,6 +3,13 @@
  * copyrighted material: this is a fan-made little puppet *inspired by* the
  * Deku personality, drawn from scratch with plain shapes).
  *
+ * The root carries BOTH classes, and both matter:
+ *   .puppet-svg → the art itself (js/puppet.js mounts it, tests find it)
+ *   .puppet     → the hooks: 38 rules in css/puppet.css (animations, faces) and
+ *                 css/app.css `.puppet-layer .puppet` (position/pointer/touch).
+ * Drop `.puppet` and Pip still mounts, but every animation dies and the layout
+ * rules stop applying — tests/unit/puppet-art.test.js fails if it goes missing.
+ *
  * Parts are named so css/puppet.css (and the tests) can drive every emotion:
  *   .aura .antenna .head-group .eyelid .pupil .brow .mouth .cheek
  *   .body-group .arm--l/.arm--r .leg--l/.leg--r .costume-accent
@@ -12,7 +19,7 @@
  * app icons are generated from the same file, so Pip always looks like Pip.
  */
 export const PUPPET_SVG = /* html */ `
-<svg class="puppet-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" role="img" aria-label="Pip the puppet hero">
+<svg class="puppet puppet-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" role="img" aria-label="Pip the puppet hero">
   <defs>
     <linearGradient id="pipSuit" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#3fbf7a"/><stop offset="1" stop-color="#1e8a52"/>

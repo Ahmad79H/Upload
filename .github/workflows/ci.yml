@@ -1,0 +1,39 @@
+name: plus-ultra-ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # 1) Static self-check: files, imports, DOM ids, SVG parts, tool specs, gateways.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run icons
+      - name: icons are up to date
+        run: git diff --exit-code -- assets/
+
+  # 2) TEN AGENTS SIMULTANEOUSLY — unit + system fleets in one command.
+  ten-agents:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:agents
+      - name: upload fleet report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agents-report
+          path: artifacts/agents-report.json
+          if-no-files-found: ignore

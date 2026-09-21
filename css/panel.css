@@ -1,0 +1,53 @@
+/* ═══════════════ sheets, modals, logs ═══════════════ */
+.sheet{position:fixed;left:0;right:0;bottom:0;height:min(78vh,660px);z-index:50;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--glass-2),rgba(6,10,26,.97));backdrop-filter:blur(18px);
+  border-top:1px solid var(--stroke);border-radius:22px 22px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.5);
+  animation:sheetIn .26s cubic-bezier(.2,1,.4,1);padding-bottom:var(--safe-b)}
+.sheet[hidden]{display:none}
+@keyframes sheetIn{from{transform:translateY(14%)}}
+.sheet__grip{width:44px;height:4px;border-radius:99px;background:var(--stroke);margin:.5rem auto .2rem}
+.sheet__tabs{display:flex;gap:.3rem;padding:.35rem .6rem;overflow-x:auto;scrollbar-width:none}
+.sheet__tabs::-webkit-scrollbar{display:none}
+.tab{padding:.35rem .7rem;border-radius:999px;font-size:.8rem;border:1px solid transparent;color:var(--ink-dim);white-space:nowrap}
+.tab.is-active{background:rgba(47,224,138,.16);border-color:rgba(47,224,138,.45);color:var(--ink)}
+.sheet__body{flex:1;overflow:auto;padding:.6rem .8rem 1.2rem;overscroll-behavior:contain}
+.pane{display:none}.pane.is-active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}}
+
+/* chat log */
+.chat-log{display:flex;flex-direction:column;gap:.5rem;min-height:30vh;max-height:52vh;overflow:auto;padding:.2rem}
+.msg{max-width:88%;padding:.5rem .7rem;border-radius:14px;font-size:.86rem;line-height:1.4;white-space:pre-wrap;word-break:break-word}
+.msg--me{align-self:flex-end;background:linear-gradient(180deg,#2b6fd6,#1b4f9e);border-bottom-right-radius:4px}
+.msg--pip{align-self:flex-start;background:rgba(20,30,62,.9);border:1px solid var(--stroke);border-bottom-left-radius:4px}
+.msg--sys{align-self:center;background:transparent;border:1px dashed var(--stroke);opacity:.72;font-size:.74rem;max-width:96%}
+.msg__meta{display:block;font-size:.64rem;letter-spacing:.05em;text-transform:uppercase;opacity:.55;margin-bottom:.2rem}
+.msg__tools{margin-top:.3rem;display:flex;flex-direction:column;gap:.25rem}
+.msg__tool{font-size:.7rem;background:rgba(47,224,138,.1);border:1px solid rgba(47,224,138,.3);border-radius:10px;padding:.25rem .5rem}
+.msg__speak{margin-top:.3rem;font-size:.72rem;opacity:.7}
+.typing::after{content:"▋";animation:blink .8s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* gateways */
+.gw-list{display:flex;flex-direction:column;gap:.4rem}
+.gw{display:grid;grid-template-columns:auto 1fr auto;gap:.55rem;align-items:center;background:rgba(8,12,30,.6);
+  border:1px solid var(--stroke);border-radius:12px;padding:.45rem .6rem;font-size:.8rem}
+.gw__dot{width:9px;height:9px;border-radius:50%;background:#5b678a;box-shadow:0 0 6px currentColor}
+.gw__dot.is-ok{background:var(--accent)}.gw__dot.is-bad{background:var(--danger)}.gw__dot.is-warm{background:#ffd76b}
+.gw__meta{opacity:.7;font-size:.72rem}
+.gw__tag{font-size:.66rem;border:1px solid var(--stroke);border-radius:999px;padding:.1rem .45rem;opacity:.85}
+.gw__tag--keyless{border-color:rgba(47,224,138,.5);color:#b9ffd9}
+.key-rows{display:flex;flex-direction:column;gap:.35rem}
+.probe-log{font-size:.72rem;opacity:.85;white-space:pre-wrap;max-height:16vh;overflow:auto;background:rgba(4,8,20,.6);
+  border:1px solid var(--stroke);border-radius:10px;padding:.45rem;margin-top:.5rem}
+.list--desc .list__item{font-size:.78rem;line-height:1.4;align-items:flex-start}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(2,5,14,.82);backdrop-filter:blur(6px);padding:1rem;
+  overflow:auto}
+.modal[hidden]{display:none}
+.modal__card{width:min(94vw,440px);background:linear-gradient(180deg,rgba(22,30,60,.98),rgba(9,13,30,.98));
+  border:1px solid var(--stroke);border-radius:22px;padding:1.1rem 1.1rem 1.3rem;box-shadow:0 24px 60px rgba(0,0,0,.6);animation:bubbleIn .3s ease}
+.modal__art{height:140px;display:grid;place-items:center;margin-bottom:.3rem}
+.modal__art svg{height:140px;width:auto}
+.modal__lead{font-size:.86rem;line-height:1.5;opacity:.9}
+.modal__fineprint{font-size:.72rem;opacity:.66;line-height:1.4;margin:.6rem 0 .8rem}

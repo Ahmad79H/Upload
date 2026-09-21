@@ -1,0 +1,16 @@
+/* ---- minimal reset ---- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:"Nunito",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  color:var(--ink,#f6fbff);background:#070b1d;overflow:hidden;
+  overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+img,svg{display:block;max-width:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+input,select,textarea{-webkit-user-select:text;user-select:text}
+h1,h2,h3,h4,p{margin:0 0 .5rem}
+h2{font-size:1.35rem}h3{font-size:1.1rem}h4{font-size:.95rem;margin-top:1rem;letter-spacing:.02em;text-transform:uppercase;opacity:.75}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+:focus-visible{outline:2px solid #7ef7c0;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important}}

@@ -1,0 +1,173 @@
+/**
+ * PIP'S BODY — original hand-written SVG (no third-party artwork, no
+ * copyrighted material: this is a fan-made little puppet *inspired by* the
+ * Deku personality, drawn from scratch with plain shapes).
+ *
+ * Parts are named so css/puppet.css (and the tests) can drive every emotion:
+ *   .aura .antenna .head-group .eyelid .pupil .brow .mouth .cheek
+ *   .body-group .arm--l/.arm--r .leg--l/.leg--r .costume-accent
+ *   .mutter .zzz .sparkle .shadow
+ *
+ * The same markup is exported to assets/puppet/pip.svg by `npm run icons`, and the
+ * app icons are generated from the same file, so Pip always looks like Pip.
+ */
+export const PUPPET_SVG = /* html */ `
+<svg class="puppet-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" role="img" aria-label="Pip the puppet hero">
+  <defs>
+    <linearGradient id="pipSuit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fbf7a"/><stop offset="1" stop-color="#1e8a52"/>
+    </linearGradient>
+    <linearGradient id="pipSkin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe1c2"/><stop offset="1" stop-color="#f6c69c"/>
+    </linearGradient>
+    <linearGradient id="pipHair" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#68cf7c"/><stop offset="1" stop-color="#2f8f4d"/>
+    </linearGradient>
+    <radialGradient id="pipAura" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.4" stop-color="#7ef7c0" stop-opacity="0.55"/><stop offset="1" stop-color="#7ef7c0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pipBoot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7a6b"/><stop offset="1" stop-color="#c8402f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ground shadow (puppet.js moves/softens it while Pip is airborne) -->
+  <ellipse class="shadow" cx="100" cy="271" rx="44" ry="8.5" fill="#000000" opacity="0.18"/>
+
+  <!-- power aura (visible when hyped) -->
+  <ellipse class="aura" cx="100" cy="180" rx="92" ry="104" fill="url(#pipAura)" style="transform-box:fill-box;transform-origin:center"/>
+
+  <g class="body-group" style="transform-box:fill-box;transform-origin:center bottom">
+    <!-- legs -->
+    <g class="leg leg--l" style="transform-box:fill-box;transform-origin:top center">
+      <rect x="70" y="214" width="20" height="34" rx="10" fill="url(#pipSuit)"/>
+      <rect x="64" y="242" width="32" height="22" rx="11" fill="url(#pipBoot)"/>
+    </g>
+    <g class="leg leg--r" style="transform-box:fill-box;transform-origin:top center">
+      <rect x="110" y="214" width="20" height="34" rx="10" fill="url(#pipSuit)"/>
+      <rect x="104" y="242" width="32" height="22" rx="11" fill="url(#pipBoot)"/>
+    </g>
+
+    <!-- torso -->
+    <rect x="62" y="164" width="76" height="70" rx="26" fill="url(#pipSuit)"/>
+    <rect class="costume-accent" x="88" y="182" width="24" height="24" rx="8" fill="#e8f7ff" opacity="0.95"/>
+    <path d="M100 186 l4 8 -8 0 z" fill="#1e8a52"/>
+    <rect x="70" y="196" width="60" height="6" rx="3" fill="#0e6b3c" opacity="0.35"/>
+
+    <!-- arms -->
+    <g class="arm arm--l" style="transform-box:fill-box;transform-origin:top center">
+      <rect x="46" y="170" width="18" height="46" rx="9" fill="url(#pipSuit)"/>
+      <circle cx="55" cy="222" r="13" fill="#f6f7ff"/>
+    </g>
+    <g class="arm arm--r" style="transform-box:fill-box;transform-origin:top center">
+      <rect x="136" y="170" width="18" height="46" rx="9" fill="url(#pipSuit)"/>
+      <circle cx="145" cy="222" r="13" fill="#f6f7ff"/>
+    </g>
+
+    <!-- head -->
+    <g class="head-group" style="transform-box:fill-box;transform-origin:center bottom">
+      <!-- antenna -->
+      <g class="antenna" style="transform-box:fill-box;transform-origin:bottom center">
+        <path d="M100 44 C100 28 108 22 116 16" stroke="#2f8f4d" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <circle cx="118" cy="14" r="7" fill="#ffd76b"/>
+        <circle cx="118" cy="14" r="12" fill="#ffd76b" opacity="0.25"/>
+      </g>
+
+      <!-- fluffy hair back -->
+      <path d="M100 26
+               c30 0 46 16 48 38 c2 20 -4 34 -10 44
+               c-10 -8 -16 -22 -18 -34
+               c-8 16 -26 24 -40 24
+               c-16 0 -30 -8 -38 -22
+               c-4 12 -10 24 -18 32
+               c-8 -12 -14 -26 -12 -46
+               c2 -22 20 -36 48 -36 z" fill="url(#pipHair)"/>
+      <path d="M62 40 l-10 -12 l16 4 z" fill="#68cf7c"/>
+      <path d="M88 28 l-4 -16 l14 10 z" fill="#68cf7c"/>
+      <path d="M138 40 l10 -12 l-16 4 z" fill="#68cf7c"/>
+
+      <!-- face -->
+      <ellipse cx="100" cy="106" rx="52" ry="50" fill="url(#pipSkin)"/>
+      <ellipse cx="100" cy="106" rx="52" ry="50" fill="none" stroke="#e0ab7f" stroke-width="1.2" opacity="0.5"/>
+
+      <!-- freckles -->
+      <g fill="#e0ab7f" opacity="0.55">
+        <circle cx="76" cy="122" r="2"/><circle cx="84" cy="126" r="2"/><circle cx="70" cy="128" r="2"/>
+        <circle cx="124" cy="122" r="2"/><circle cx="116" cy="126" r="2"/><circle cx="130" cy="128" r="2"/>
+      </g>
+
+      <!-- eyes -->
+      <g class="eye eye--l">
+        <ellipse cx="80" cy="104" rx="15" ry="17" fill="#ffffff"/>
+        <circle class="pupil" cx="80" cy="106" r="9.5" fill="#1c6b3f"/>
+        <circle cx="80" cy="106" r="4.4" fill="#0d2a1a"/>
+        <circle cx="84.5" cy="100" r="3.4" fill="#ffffff" opacity="0.95"/>
+        <rect class="eyelid" x="63" y="85" width="34" height="40" rx="16" fill="url(#pipSkin)" style="transform-box:fill-box;transform-origin:center top"/>
+      </g>
+      <g class="eye eye--r">
+        <ellipse cx="120" cy="104" rx="15" ry="17" fill="#ffffff"/>
+        <circle class="pupil" cx="120" cy="106" r="9.5" fill="#1c6b3f"/>
+        <circle cx="120" cy="106" r="4.4" fill="#0d2a1a"/>
+        <circle cx="124.5" cy="100" r="3.4" fill="#ffffff" opacity="0.95"/>
+        <rect class="eyelid" x="103" y="85" width="34" height="40" rx="16" fill="url(#pipSkin)" style="transform-box:fill-box;transform-origin:center top"/>
+      </g>
+
+      <!-- brows -->
+      <path class="brow brow--l" d="M66 84 q14 -8 28 -2" stroke="#2f8f4d" stroke-width="5" fill="none" stroke-linecap="round" style="transform-box:fill-box;transform-origin:center"/>
+      <path class="brow brow--r" d="M106 82 q14 -6 28 2" stroke="#2f8f4d" stroke-width="5" fill="none" stroke-linecap="round" style="transform-box:fill-box;transform-origin:center"/>
+
+      <!-- cheeks -->
+      <ellipse class="cheek" cx="66" cy="124" rx="10" ry="6.5" fill="#ff9ba6"/>
+      <ellipse class="cheek" cx="134" cy="124" rx="10" ry="6.5" fill="#ff9ba6"/>
+
+      <!-- mouth -->
+      <path class="mouth" d="M88 130 q12 12 24 0" stroke="#a8482f" stroke-width="4.5" fill="none" stroke-linecap="round" style="transform-box:fill-box;transform-origin:center"/>
+
+      <!-- mutter scribbles while thinking -->
+      <g class="mutter" fill="#0d2a1a" opacity="0.7" style="transform-box:fill-box;transform-origin:bottom left">
+        <path d="M148 62 q10 -6 18 2" stroke="#0d2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M152 74 q10 -6 18 2" stroke="#0d2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M156 86 q8 -5 14 1" stroke="#0d2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </g>
+      <!-- sleep zzz -->
+      <g class="zzz" style="transform-box:fill-box;transform-origin:bottom left">
+        <text x="150" y="60" font-size="26" font-weight="700" fill="#ffffff" opacity="0.9">z</text>
+        <text x="166" y="42" font-size="20" font-weight="700" fill="#ffffff" opacity="0.75">z</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- sparkles -->
+  <g class="sparkle" fill="#ffe680" style="transform-box:fill-box;transform-origin:center">
+    <path d="M40 96 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 z"/>
+    <path d="M160 130 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
+    <path d="M52 176 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"/>
+  </g>
+</svg>`;
+
+export const PUPPET_PARTS = [
+  'aura', 'antenna', 'head-group', 'body-group', 'pupil', 'eyelid', 'brow', 'brow--l', 'brow--r',
+  'mouth', 'cheek', 'mutter', 'zzz', 'sparkle', 'shadow', 'leg', 'leg--l', 'leg--r', 'arm', 'arm--l', 'arm--r', 'costume-accent',
+];
+
+/** Compact version used for the app icon (head only, no animation hooks needed). */
+export const ICON_SVG = /* html */ `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#123a2c"/><stop offset="1" stop-color="#0b1b33"/></linearGradient>
+    <linearGradient id="hair" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#68cf7c"/><stop offset="1" stop-color="#2f8f4d"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe1c2"/><stop offset="1" stop-color="#f6c69c"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="300" r="150" fill="#7ef7c0" opacity="0.12"/>
+  <g transform="translate(56,60) scale(2)">
+    <path d="M100 18 c30 0 46 16 48 38 c2 20 -4 34 -10 44 c-10 -8 -16 -22 -18 -34 c-8 16 -26 24 -40 24 c-16 0 -30 -8 -38 -22 c-4 12 -10 24 -18 32 c-8 -12 -14 -26 -12 -46 c2 -22 20 -36 48 -36 z" fill="url(#hair)"/>
+    <ellipse cx="100" cy="98" rx="52" ry="50" fill="url(#skin)"/>
+    <ellipse cx="80" cy="96" rx="15" ry="17" fill="#fff"/><circle cx="80" cy="98" r="9" fill="#1c6b3f"/><circle cx="84" cy="92" r="3" fill="#fff"/>
+    <ellipse cx="120" cy="96" rx="15" ry="17" fill="#fff"/><circle cx="120" cy="98" r="9" fill="#1c6b3f"/><circle cx="124" cy="92" r="3" fill="#fff"/>
+    <path d="M88 122 q12 12 24 0" stroke="#a8482f" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="66" cy="116" rx="9" ry="6" fill="#ff9ba6" opacity=".75"/><ellipse cx="134" cy="116" rx="9" ry="6" fill="#ff9ba6" opacity=".75"/>
+    <path d="M100 40 C100 26 108 20 116 14" stroke="#2f8f4d" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="118" cy="12" r="7" fill="#ffd76b"/>
+  </g>
+</svg>`;

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#123a2c"/><stop offset="1" stop-color="#0b1b33"/></linearGradient>
+    <linearGradient id="hair" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#68cf7c"/><stop offset="1" stop-color="#2f8f4d"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe1c2"/><stop offset="1" stop-color="#f6c69c"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="300" r="150" fill="#7ef7c0" opacity="0.12"/>
+  <g transform="translate(56,60) scale(2)">
+    <path d="M100 18 c30 0 46 16 48 38 c2 20 -4 34 -10 44 c-10 -8 -16 -22 -18 -34 c-8 16 -26 24 -40 24 c-16 0 -30 -8 -38 -22 c-4 12 -10 24 -18 32 c-8 -12 -14 -26 -12 -46 c2 -22 20 -36 48 -36 z" fill="url(#hair)"/>
+    <ellipse cx="100" cy="98" rx="52" ry="50" fill="url(#skin)"/>
+    <ellipse cx="80" cy="96" rx="15" ry="17" fill="#fff"/><circle cx="80" cy="98" r="9" fill="#1c6b3f"/><circle cx="84" cy="92" r="3" fill="#fff"/>
+    <ellipse cx="120" cy="96" rx="15" ry="17" fill="#fff"/><circle cx="120" cy="98" r="9" fill="#1c6b3f"/><circle cx="124" cy="92" r="3" fill="#fff"/>
+    <path d="M88 122 q12 12 24 0" stroke="#a8482f" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="66" cy="116" rx="9" ry="6" fill="#ff9ba6" opacity=".75"/><ellipse cx="134" cy="116" rx="9" ry="6" fill="#ff9ba6" opacity=".75"/>
+    <path d="M100 40 C100 26 108 20 116 14" stroke="#2f8f4d" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="118" cy="12" r="7" fill="#ffd76b"/>
+  </g>
+</svg>

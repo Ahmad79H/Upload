@@ -1,0 +1,24 @@
+{
+  "name": "Plus Ultra Puppet",
+  "short_name": "Puppet",
+  "description": "A cute little drag-anywhere AI puppet with a Deku-inspired personality, free keyless AI gateways, on-device tool calling and habit learning.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "fullscreen"],
+  "orientation": "portrait-primary",
+  "background_color": "#0e1430",
+  "theme_color": "#1f8a4c",
+  "categories": ["entertainment", "productivity", "utilities"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" },
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "shortcuts": [
+    { "name": "Ask the puppet", "short_name": "Ask", "url": "./index.html?action=talk" },
+    { "name": "Habit report", "short_name": "Habits", "url": "./index.html?action=habits" }
+  ]
+}

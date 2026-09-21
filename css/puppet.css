@@ -1,0 +1,99 @@
+/* ═══════════════ the puppet: Pip ═══════════════
+   All animation is CSS transform/opacity on named SVG parts, driven by a
+   `data-state` + `data-mood` attribute so tests can assert the state machine. */
+.puppet{--hue:0deg;width:var(--puppet-size,168px);height:auto;image-rendering:auto;
+  transition:filter .4s ease,opacity .3s ease}
+.puppet-svg{width:100%;height:auto;overflow:visible}
+
+/* breathing / idle: whole body gentle bob */
+.puppet[data-anim="idle"] .body-group{animation:breathe 3.1s ease-in-out infinite}
+.puppet[data-anim="idle"] .antenna{animation:antenna 2.6s ease-in-out infinite}
+.puppet[data-anim="idle"] .head-group{animation:headIdle 4.4s ease-in-out infinite}
+@keyframes breathe{50%{transform:translateY(-3px) scaleY(1.015)}}
+@keyframes headIdle{50%{transform:rotate(1.6deg)}}
+@keyframes antenna{50%{transform:rotate(6deg)}}
+
+/* blinking: eyelid rect grows over the eye */
+.puppet .eyelid{transform:scaleY(0);transform-origin:center top;transition:transform .09s ease}
+.puppet[data-blink="true"] .eyelid{transform:scaleY(1)}
+
+/* eye tracking: pupils shift with look direction */
+.puppet .pupil{transition:transform .18s ease}
+.puppet[data-look="left"] .pupil{transform:translateX(-3px)}
+.puppet[data-look="right"] .pupil{transform:translateX(3px)}
+.puppet[data-look="up"] .pupil{transform:translateY(-2.5px)}
+.puppet[data-look="down"] .pupil{transform:translateY(2.5px)}
+
+/* expressions */
+.puppet .brow{transition:transform .2s ease}
+.puppet[data-expr="happy"] .brow--l{transform:translateY(-2px) rotate(-6deg)}
+.puppet[data-expr="happy"] .brow--r{transform:translateY(-2px) rotate(6deg)}
+.puppet[data-expr="curious"] .brow--l{transform:translateY(-4px) rotate(-16deg)}
+.puppet[data-expr="sad"] .brow--l{transform:translateY(2px) rotate(14deg)}
+.puppet[data-expr="sad"] .brow--r{transform:translateY(2px) rotate(-14deg)}
+.puppet .mouth{transition:d .2s ease}
+.puppet[data-expr="happy"] .mouth{transform:translateY(1px) scaleX(1.15);transform-origin:center}
+.puppet[data-expr="wow"] .mouth{transform:scaleY(1.6);transform-origin:center}
+.puppet[data-expr="sad"] .mouth{transform:scaleY(-.7);transform-origin:center}
+.puppet[data-expr="determined"] .mouth{transform:scaleX(.8)}
+
+/* cheeks blush (embarrassed Deku!) */
+.puppet .cheek{opacity:0;transition:opacity .3s ease}
+.puppet[data-expr="blush"] .cheek,.puppet[data-expr="happy"] .cheek{opacity:.75}
+
+/* speaking: mouth flap + tiny bounce */
+.puppet[data-anim="talk"] .mouth{animation:talk .22s steps(2) infinite}
+.puppet[data-anim="talk"] .body-group{animation:talkBob .5s ease-in-out infinite}
+@keyframes talk{50%{transform:scaleY(1.7) translateY(-.6px)}}
+@keyframes talkBob{50%{transform:translateY(-1.5px)}}
+
+/* thinking: mutter lines + look up */
+.puppet[data-anim="think"] .body-group{animation:thinkSway 1.6s ease-in-out infinite}
+.puppet[data-anim="think"] .mutter{opacity:1;animation:mutter 2.4s linear infinite}
+.puppet .mutter{opacity:0;transition:opacity .3s}
+@keyframes thinkSway{50%{transform:rotate(-2deg) translateY(-1px)}}
+@keyframes mutter{0%{transform:translate(0,0) scale(.6);opacity:0}30%{opacity:.85}100%{transform:translate(6px,-10px) scale(1.1);opacity:0}}
+
+/* jump / celebrate */
+.puppet[data-anim="jump"]{animation:jump .6s cubic-bezier(.3,-.5,.4,1.6) 1}
+.puppet[data-anim="cheer"]{animation:cheer .5s ease-in-out 3}
+@keyframes jump{40%{transform:translateY(-34px) rotate(-4deg)}70%{transform:translateY(0) scaleY(.92)}}
+@keyframes cheer{25%{transform:rotate(-7deg) scale(1.03)}75%{transform:rotate(7deg) scale(1.03)}}
+
+/* sad / power-down */
+.puppet[data-anim="droop"] .head-group{transform:rotate(7deg) translateY(3px);transition:transform .4s ease}
+.puppet[data-anim="droop"] .body-group{animation:none}
+
+/* sleeping */
+.puppet[data-anim="sleep"]{opacity:.94}
+.puppet[data-anim="sleep"] .body-group{animation:sleepBob 4.6s ease-in-out infinite}
+.puppet[data-anim="sleep"] .zzz{opacity:1;animation:zzz 3.2s linear infinite}
+.puppet .zzz{opacity:0}
+@keyframes sleepBob{50%{transform:translateY(2px) scaleY(.985)}}
+@keyframes zzz{0%{transform:translate(0,0) scale(.5);opacity:0}25%{opacity:.9}100%{transform:translate(10px,-22px) scale(1.15);opacity:0}}
+
+/* dragging: squish + tilt + wobble on release */
+.puppet-svg.is-dragging{cursor:grabbing}
+.puppet[data-drag="true"] .body-group{animation:none;transform:scale(1.04,1.08) rotate(-3deg)}
+.puppet[data-drag="true"] .antenna{animation:antennaSwing .5s ease-in-out infinite}
+@keyframes antennaSwing{50%{transform:rotate(24deg)}}
+.puppet[data-drag="true"] .leg--l{transform:rotate(8deg)}
+.puppet[data-drag="true"] .leg--r{transform:rotate(-8deg)}
+.puppet[data-drag="false"].is-landed .body-group{animation:land .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes land{35%{transform:scale(1.12,.86) translateY(3px)}70%{transform:scale(.96,1.05)}}
+
+/* effects */
+.puppet .sparkle{opacity:0}
+.puppet[data-anim="cheer"] .sparkle,.puppet[data-anim="jump"] .sparkle{animation:sparkle .9s ease-out infinite}
+@keyframes sparkle{0%{opacity:0;transform:scale(.4)}40%{opacity:1}100%{opacity:0;transform:scale(1.25) translateY(-8px)}}
+.puppet .aura{opacity:0;transition:opacity .4s}
+.puppet[data-mood="hyped"] .aura{opacity:.55;animation:aura 2.4s ease-in-out infinite}
+@keyframes aura{50%{opacity:.85;transform:scale(1.06)}}
+.puppet .shadow{transition:opacity .2s}
+
+/* sparkle-on-demand (tool: emote) */
+.puppet.is-sparkling .sparkle{animation:sparkle 1s ease-out 3}
+
+/* pip's costume accents shift with persona */
+.puppet[data-persona="calm"] .costume-accent{fill:#7cc2ff}
+.puppet[data-persona="hype"] .costume-accent{fill:#ffd76b}

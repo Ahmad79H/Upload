@@ -1,0 +1,14 @@
+node_modules/
+.DS_Store
+*.log
+artifacts/
+test-results/
+coverage/
+android/app/build/
+android/.gradle/
+android/local.properties
+*.keystore
+.env
+android/app/src/main/assets/www/
+android/build/
+android/.idea/

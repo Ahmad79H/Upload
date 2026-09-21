@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sky blue behind the puppet, matching the PWA theme colour. -->
+    <style name="PipTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#8fd6ff</item>
+        <item name="android:statusBarColor">#8fd6ff</item>
+        <item name="android:navigationBarColor">#8fd6ff</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

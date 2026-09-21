@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#1f8a4c" />
+<meta name="description" content="Plus Ultra Puppet — a cute drag-anywhere AI puppet with a Deku-inspired personality and free keyless AI." />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Plus Ultra Puppet</title>
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg" />
+<link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+<link rel="stylesheet" href="./css/reset.css" />
+<link rel="stylesheet" href="./css/app.css" />
+<link rel="stylesheet" href="./css/puppet.css" />
+<link rel="stylesheet" href="./css/panel.css" />
+</head>
+<body data-boot="cold">
+
+<!-- ───────────────────────── STAGE ───────────────────────── -->
+<div id="stage" class="stage" data-theme="day">
+  <div class="sky">
+    <div class="sky__stars" aria-hidden="true"></div>
+    <div class="sky__sun" aria-hidden="true"></div>
+    <div class="sky__clouds" aria-hidden="true">
+      <span class="cloud cloud--1"></span><span class="cloud cloud--2"></span><span class="cloud cloud--3"></span>
+    </div>
+  </div>
+  <div class="ground" aria-hidden="true"></div>
+
+  <!-- the puppet itself is injected here by js/puppet.js -->
+  <div id="puppet-layer" class="puppet-layer" role="img" aria-label="Pip, a small cute puppet hero who talks with you"></div>
+
+  <div id="bubble-layer" class="bubble-layer" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="drop-shadow" class="drop-shadow" aria-hidden="true"></div>
+  <div id="presence-dot" class="presence-dot" title="presence sensor" aria-hidden="true"></div>
+</div>
+
+<!-- ───────────────────────── HUD ───────────────────────── -->
+<header id="hud" class="hud">
+  <button id="brain-chip" class="chip" type="button" title="Active free brain — tap to manage gateways">
+    <span class="chip__dot" id="brain-dot"></span>
+    <span class="chip__text" id="brain-label">warming up…</span>
+  </button>
+  <div class="hud__spacer"></div>
+  <div class="hud__icons">
+    <span id="ind-mic" class="ind" title="microphone" hidden>🎙️</span>
+    <span id="ind-eye" class="ind" title="presence camera" hidden>👁️</span>
+    <span id="ind-motion" class="ind" title="movement" hidden>🏃</span>
+    <span id="ind-battery" class="ind" title="battery">🔋</span>
+    <span id="ind-net" class="ind" title="connection">🌐</span>
+    <button id="mood-btn" class="ind ind--btn" type="button" title="How Pip feels">😄</button>
+  </div>
+</header>
+
+<!-- ───────────────────────── MOOD/PERSONALITY QUICK BAR ───────────────────────── -->
+<div id="mood-bar" class="mood-bar" hidden>
+  <div class="mood-bar__row"><span>Energy</span><input id="mood-energy" type="range" min="0" max="100" value="70" /></div>
+  <div class="mood-bar__row"><span>Cheer</span><input id="mood-cheer" type="range" min="0" max="100" value="85" /></div>
+  <div class="mood-bar__row"><span>Mutter</span><input id="mood-mutter" type="range" min="0" max="100" value="60" /></div>
+  <div class="mood-bar__row"><span>Chatty</span><input id="mood-chatty" type="range" min="0" max="100" value="50" /></div>
+  <p class="hint">Pip's personality dials. Slide him calmer or louder — he adapts his voice, faces and how much he talks.</p>
+</div>
+
+<!-- ───────────────────────── DOCK ───────────────────────── -->
+<nav id="dock" class="dock">
+  <button id="btn-talk" class="dock__btn dock__btn--mic" type="button" aria-label="Hold to talk">
+    <span class="dock__mic-ico">🎙️</span><span class="dock__label">Talk</span>
+  </button>
+  <form id="ask-form" class="dock__ask" autocomplete="off">
+    <input id="ask-input" name="q" type="text" placeholder="Ask Pip anything…" enterkeyhint="send" />
+    <button id="ask-send" class="dock__send" type="submit" aria-label="Send">➤</button>
+  </form>
+  <button id="btn-sheet" class="dock__btn" type="button" aria-label="Open menu"><span class="dock__mic-ico">☰</span><span class="dock__label">Menu</span></button>
+</nav>
+
+<!-- ───────────────────────── SHEETS ───────────────────────── -->
+<section id="sheet" class="sheet" hidden aria-modal="true" role="dialog" aria-label="Puppet menu">
+  <div class="sheet__grip" id="sheet-grip"></div>
+  <div class="sheet__tabs" role="tablist">
+    <button class="tab is-active" data-tab="chat" role="tab">Chat</button>
+    <button class="tab" data-tab="brain" role="tab">Brains</button>
+    <button class="tab" data-tab="memory" role="tab">Memory</button>
+    <button class="tab" data-tab="habits" role="tab">Habits</button>
+    <button class="tab" data-tab="settings" role="tab">Settings</button>
+  </div>
+
+  <div class="sheet__body">
+    <div class="pane is-active" data-pane="chat">
+      <div id="chat-log" class="chat-log"></div>
+      <div class="row">
+        <button id="btn-clear-chat" class="btn btn--ghost" type="button">Clear chat</button>
+        <button id="btn-say-hi" class="btn" type="button">Wave at Pip</button>
+      </div>
+    </div>
+
+    <div class="pane" data-pane="brain">
+      <p class="hint">Pip talks to <strong>free, keyless AI gateways</strong> — no signup, no card. He probes them, remembers which answer fast, and hops to the next one automatically when one is slow or rate-limited. A key in the box below is <em>optional</em> and stays on your device.</p>
+      <div id="gateway-list" class="gw-list"></div>
+      <div class="row">
+        <button id="btn-probe" class="btn" type="button">Probe all brains</button>
+        <button id="btn-reset-health" class="btn btn--ghost" type="button">Reset health</button>
+      </div>
+      <h4>Optional keys (unlock bigger free tiers — Groq, Gemini, OpenRouter…)</h4>
+      <div id="key-rows" class="key-rows"></div>
+      <h4>Local brain bridges</h4>
+      <p class="hint">Running <code>needle --serve</code> (Cactus, 26M tool-calling model) or Ollama on this machine? Point Pip at it and tool-calling runs <em>fully on-device</em>.</p>
+      <div class="row">
+        <label class="field"><span>Needle bridge</span><input id="cfg-needle" type="url" placeholder="http://127.0.0.1:8000" /></label>
+        <label class="field"><span>Ollama bridge</span><input id="cfg-ollama" type="url" placeholder="http://127.0.0.1:11434" /></label>
+      </div>
+      <div id="probe-log" class="probe-log" aria-live="polite"></div>
+    </div>
+
+    <div class="pane" data-pane="memory">
+      <p class="hint">Everything Pip remembers lives in <strong>this device only</strong> (localStorage). No cloud memory, no accounts. Delete anything, anytime.</p>
+      <div class="row">
+        <input id="mem-search" type="search" placeholder="search memories…" />
+        <button id="btn-add-mem" class="btn" type="button">+ Remember</button>
+        <button id="btn-wipe-mem" class="btn btn--danger" type="button">Wipe all</button>
+      </div>
+      <div id="memory-list" class="list"></div>
+      <h4>Hero Notebook (things he learned about you)</h4>
+      <div id="profile-view" class="list list--desc"></div>
+    </div>
+
+    <div class="pane" data-pane="habits">
+      <p class="hint">Pip watches patterns — when you wake up, when you ask for what, how long you use your phone. Press "Scan my habits" and he'll write you a hero-notebook insight.</p>
+      <div class="row">
+        <button id="btn-scan-habits" class="btn" type="button">Scan my habits</button>
+        <button id="btn-habits-report" class="btn btn--ghost" type="button">Ask Pip for a report</button>
+      </div>
+      <div id="habits-view" class="list"></div>
+      <h4>Raw signals (local only)</h4>
+      <pre id="signals-view" class="code"></pre>
+    </div>
+
+    <div class="pane" data-pane="settings">
+      <label class="field"><span>Your name</span><input id="cfg-name" type="text" placeholder="what should Pip call you?" /></label>
+      <label class="field"><span>Voice</span><select id="cfg-voice"></select></label>
+      <label class="field"><span>Speak replies</span><input id="cfg-speak" type="checkbox" checked /></label>
+      <label class="field"><span>Pip's tone filters (he never swears, ever)</span></label>
+      <label class="field"><span>Auto-wake on voice</span><input id="cfg-voicewake" type="checkbox" /></label>
+      <label class="field"><span>Presence camera — "he watches over you"</span><input id="cfg-camera" type="checkbox" /></label>
+      <p class="hint">The camera feed is analysed <strong>on-device, frame by frame</strong>: Pip only derives "someone moved / someone's here". Frames are never stored, never uploaded. There is an eye badge while it runs.</p>
+      <label class="field"><span>Habit nudges (little proactive hello)</span><input id="cfg-nudges" type="checkbox" checked /></label>
+      <label class="field"><span>Quiet hours</span>
+        <span class="row row--tight"><input id="cfg-quiet-start" type="time" value="23:00" /> <input id="cfg-quiet-end" type="time" value="07:00" /></span>
+      </label>
+      <label class="field"><span>Private mode (no network at all)</span><input id="cfg-private" type="checkbox" /></label>
+      <div class="row">
+        <button id="btn-export" class="btn btn--ghost" type="button">Export my data</button>
+        <button id="btn-import" class="btn btn--ghost" type="button">Import</button>
+        <button id="btn-reset" class="btn btn--danger" type="button">Factory reset</button>
+      </div>
+      <h4>Install on your phone</h4>
+      <p class="hint" id="install-hint">Open the menu in Chrome/Safari → <em>Add to Home screen</em>. Pip then lives as a real app, works offline, and can keep his eyes and ears on.</p>
+      <div class="row">
+        <button id="btn-install" class="btn" type="button" hidden>Install now</button>
+        <button id="btn-test" class="btn btn--ghost" type="button">Run self-test</button>
+      </div>
+      <pre id="selftest-view" class="code"></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── ONBOARDING ───────────────────────── -->
+<div id="onboarding" class="modal" hidden>
+  <div class="modal__card">
+    <div class="modal__art" id="onboard-art"></div>
+    <h2>Hi! I'm Pip 🥦</h2>
+    <p class="modal__lead">A tiny puppet hero with a notebook full of everything about you. I can talk, listen, drag around your screen, watch over you, and I never, ever give up. <strong>Plus Ultra!</strong></p>
+    <label class="field"><span>What should I call you?</span><input id="ob-name" type="text" placeholder="your name" /></label>
+    <label class="field"><span>How should I sound?</span>
+      <select id="ob-persona">
+        <option value="deku">Deku-ish — earnest, mutters, Plus Ultra! (default)</option>
+        <option value="calm">Calm hero — soft and steady</option>
+        <option value="hype">Hype hero — loud, sparkly, dramatic</option>
+      </select>
+    </label>
+    <label class="check"><input id="ob-perms-mic" type="checkbox" checked /> Let me listen when you hold the mic</label>
+    <label class="check"><input id="ob-perms-cam" type="checkbox" /> Let me watch over you (on-device only)</label>
+    <p class="modal__fineprint">Free gateways only — no API key, no signup, no card. Don't send secrets to public gateways; flip on Private mode for those.</p>
+    <button id="ob-start" class="btn btn--big" type="button">Let's go! ➤</button>
+  </div>
+</div>
+
+<div id="toast-layer" class="toast-layer" aria-live="polite"></div>
+
+<script type="module" src="./js/main.js"></script>
+<noscript><p style="color:#fff;padding:2rem">Pip needs JavaScript to come alive 🥦</p></noscript>
+</body>
+</html>

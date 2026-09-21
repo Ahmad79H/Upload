@@ -39,7 +39,20 @@ function safeJoin(root, urlPath) {
   return full;
 }
 
+// Request log: makes it obvious whether the Arena preview edge (or your phone) is
+// actually reaching this sandbox, and which Host header it arrives with.
+let served = 0;
 const server = createServer(async (req, res) => {
+  served += 1;
+  if ((req.url || '').split('?')[0] === '/healthz') {
+    res.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store' }).end('ok');
+    return;
+  }
+  if (served <= 400) {
+    const host = req.headers.host || '-';
+    const fwd = req.headers['x-forwarded-host'] || req.headers['x-forwarded-for'] || '-';
+    console.log(`  [${served}] ${req.method} ${req.url} · host=${host} · fwd=${fwd}`);
+  }
   try {
     let target = safeJoin(ROOT, req.url || '/');
     if (!target) {
